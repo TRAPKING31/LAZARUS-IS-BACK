@@ -3,7 +3,7 @@ import time
 
 TARGET_IP = "89.46.1.130"
 TARGET_PORT = 7008
-DURATION = 6000000
+DURATION = 6000
 
 def test_connection():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -32,3 +32,4 @@ def test_connection():
 
 if __name__ == "__main__":
     test_connection()
+  
