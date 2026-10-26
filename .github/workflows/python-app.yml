@@ -17,4 +17,4 @@ jobs:
 
     - name: Run script
       run: |
-        python stress.py
+        python3 stress.py
