@@ -2,9 +2,9 @@ import socket
 import concurrent.futures
 import time
 
-TARGET_IP = "89.46.1.130"
-TARGET_PORT = 7008
-DURATION = 3000  # مدة الاختبار بالثواني
+TARGET_IP = "170.62.202.93"
+TARGET_PORT = 7777
+DURATION = 1000  # مدة الاختبار بالثواني
 THREADS = 50   # عدد الخيوط المتزامنة للضغط بشكل ذكي
 
 def send_smart_query():
