@@ -1,11 +1,10 @@
-name: Run Target Script
+name: Run Stress Script
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-  
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +21,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests
 
-    - name: Run Python script
+    - name: Run stress script
       run: |
-        python insta_target.py
+        python stress.py
