@@ -1,20 +1,26 @@
-name: Run C Samp Script
+name: Run Stress Script
 
 on:
   workflow_dispatch:
 
 jobs:
-  build_and_run:
+  build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Compile C script
-      run: |
-        gcc rflood.c -o rflood
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-    - name: Run compiled script
+    - name: Install dependencies
       run: |
-        sudo ./rflood
+        python -m pip install --upgrade pip
+        pip install requests
+
+    - name: Run stress script
+      run: |
+        python stress.py
