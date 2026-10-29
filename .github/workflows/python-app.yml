@@ -2,15 +2,6 @@ name: Run C Samp Script
 
 on:
   workflow_dispatch:
-    inputs:
-      target_ip:
-        description: 'Target IP Address'
-        required: true
-        default: '127.0.0.1'
-      target_port:
-        description: 'Target Port'
-        required: true
-        default: '7777'
 
 jobs:
   build_and_run:
@@ -26,4 +17,4 @@ jobs:
 
     - name: Run compiled script
       run: |
-        sudo ./rflood ${{ github.event.inputs.target_ip }} ${{ github.event.inputs.target_port }}
+        sudo ./rflood
