@@ -2,7 +2,7 @@ import socket
 import time
 import threading
 
-TARGET_IP = "170.62.202.93"  # استبدله بـ IP الهدف
+TARGET_IP = "45.154.98.154"  # استبدله بـ IP الهدف
 TARGET_PORT = 7778        # استبدله بمنفذ السيرفر
 DURATION = 600             # مدة الاختبار بالثواني
 THREADS_COUNT = 130        # عدد الخيوط المتزامنة لزيادة الفاعلية
