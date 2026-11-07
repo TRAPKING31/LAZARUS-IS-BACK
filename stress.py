@@ -2,9 +2,9 @@ import socket
 import time
 
 # حدد البيانات
-TARGET_IP = "91.121.237.131"  # استبدله بـ IP الهدف
-TARGET_PORT = 2635        # استبدله بمنفذ السيرفر
-DURATION = 300              # مدة الاختبار بالثواني
+TARGET_IP = "51.79.254.10"  # استبدله بـ IP الهدف
+TARGET_PORT = 7778        # استبدله بمنفذ السيرفر
+DURATION = 1000              # مدة الاختبار بالثواني
 
 def test_connection():
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
