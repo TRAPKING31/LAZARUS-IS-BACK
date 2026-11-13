@@ -206,4 +206,4 @@ async def attack(ctx, ip: str, port: int, duration: int, method: str):
     await msg.edit(embed=embed_done)
 
 # ضع توكن البوت الخاص بك هنا
-bot.run('MTUzNjIxNDc5MDIzMjM1MDg1MA.GdhEp1.RpQSEWAmCevkabz9t81ahGlgf0lj-gFxCgw_LA')
+bot.run('MTUzNjIxNDc5MDIzMjM1MDg1MA.Gkntld.tYRtUQvNhenrVh-M5Sp5LWkh0i2wkJ6bsBQJY4')
